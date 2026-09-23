@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Router Admin</title>
+<script src="/static/chart.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#f8f9fa;--surface:#ffffff;--border:#e5e7eb;
+  --text:#111827;--text2:#6b7280;--text3:#9ca3af;
+  --accent:#6366f1;--accent-light:#ede9fe;
+  --green:#10b981;--red:#ef4444;--yellow:#f59e0b;--blue:#3b82f6;--orange:#f97316;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);line-height:1.5;min-height:100vh}
+
+/* ── Nav ── */
+.nav{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between}
+.nav-left{display:flex;align-items:center;gap:10px}
+.nav-logo{font-size:1.1rem;font-weight:700;color:var(--accent)}
+.nav-badge{background:var(--accent-light);color:var(--accent);font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;letter-spacing:.3px}
+.nav-right{display:flex;align-items:center;gap:12px}
+.nav-user{text-align:right}
+.nav-user-name{font-size:13px;font-weight:600;color:var(--text)}
+.nav-user-email{font-size:11px;color:var(--text3)}
+.btn{padding:6px 14px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-outline{background:transparent;color:var(--text2);border:1px solid var(--border)}
+.btn-danger{background:#fef2f2;color:var(--red);border:1px solid #fecaca}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn-copy{background:var(--bg);color:var(--text2);border:1px solid var(--border)}
+
+/* ── Layout ── */
+.content{max-width:1400px;margin:0 auto;padding:24px}
+
+/* ── Login ── */
+#loginGate{display:none;min-height:100vh;align-items:center;justify-content:center;background:var(--bg)}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;width:380px;box-shadow:0 4px 24px rgba(0,0,0,.06);text-align:center}
+.login-card h1{font-size:1.3rem;font-weight:700;margin-bottom:4px}
+.login-card p{font-size:13px;color:var(--text2);margin-bottom:28px}
+.login-error{color:var(--red);font-size:12px;margin-bottom:10px;display:none}
+
+/* ── Cards ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+.card-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:16px}
+
+/* ── Stat cards ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;position:relative;overflow:hidden}
+.stat-icon{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.stat-val{font-size:1.75rem;font-weight:700;color:var(--text);line-height:1;margin-bottom:4px}
+.stat-label{font-size:12px;font-weight:500;color:var(--text2)}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* ── Chart grid ── */
+.chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px;margin-bottom:24px}
+.chart-wrap{position:relative;height:260px}
+
+/* ── Table ── */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 12px;color:var(--text2);font-weight:500;border-bottom:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:#f9fafb}
+.mono{font-family:'SF Mono',Monaco,Consolas,monospace;font-size:12px}
+
+/* ── Status dots / badges ── */
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.dot-green{background:var(--green)}
+.dot-red{background:var(--red)}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-green{background:#d1fae5;color:#065f46}
+.badge-red{background:#fee2e2;color:#991b1b}
+.badge-yellow{background:#fef3c7;color:#92400e}
+
+/* ── Forms ── */
+.form-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-label{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.3px}
+.form-input{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:13px;width:220px;font-family:inherit}
+.form-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,.08)}
+.form-input::placeholder{color:var(--text3)}
+
+/* ── API key reveal ── */
+.api-key-box{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px 16px;margin-top:14px;display:none}
+.key-val{font-family:'SF Mono',Monaco,Consolas,monospace;font-size:12px;color:#065f46;word-break:break-all;margin-bottom:8px}
+.key-note{font-size:11px;color:var(--text2)}
+
+/* ── Section spacing ── */
+.section{margin-bottom:24px}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.section-title{font-size:14px;font-weight:600;color:var(--text)}
+
+/* ── User detail ── */
+#userDetailPanel{display:none;margin-top:16px}
+.detail-header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+
+/* ── Refresh badge ── */
+.refresh-chip{font-size:11px;color:var(--text3);background:var(--bg);border:1px solid var(--border);padding:3px 10px;border-radius:20px}
+
+/* ── Collapsible create form ── */
+#createUserForm{display:none;padding-top:14px;border-top:1px solid var(--border);margin-top:14px}
+.empty-row td{text-align:center;padding:28px;color:var(--text3)}
+
+/* ── Success rate color ── */
+.sr-high{color:var(--green)}
+.sr-med{color:var(--yellow)}
+.sr-low{color:var(--red)}
+
+/* ── Provider health cards ── */
+.health-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+.health-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;display:flex;align-items:center;gap:14px}
+.health-icon{font-size:22px;flex-shrink:0}
+.health-info{min-width:0}
+.health-name{font-size:13px;font-weight:600;color:var(--text);text-transform:capitalize}
+.health-status{font-size:11px;font-weight:600;margin-top:2px}
+.health-sub{font-size:11px;color:var(--text3);margin-top:1px}
+.status-up{color:var(--green)}
+.status-down{color:var(--red)}
+</style>
+</head>
+<body>
+
+<!-- ── Login Gate ── -->
+<div id="loginGate" style="display:none">
+  <div class="login-card">
+    <div style="font-size:28px;margin-bottom:10px">🔐</div>
+    <h1>Admin Dashboard</h1>
+    <p>Sign in with your admin API key</p>
+    <div class="form-group" style="text-align:left;margin-bottom:12px">
+      <label class="form-label">Admin API Key</label>
+      <div style="position:relative">
+        <input class="form-input" id="loginKey" type="password" placeholder="Enter your admin key" style="width:100%;padding-right:40px" onkeydown="if(event.key==='Enter')doLogin()">
+        <button type="button" onclick="const i=$('#loginKey');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:14px;padding:0;line-height:1">👁</button>
+      </div>
+    </div>
+    <div class="login-error" id="loginError">Invalid or non-admin key</div>
+    <button class="btn btn-primary" onclick="doLogin()" style="width:100%;padding:10px">Sign In</button>
+  </div>
+</div>
+
+<!-- ── Main Dashboard ── -->
+<div id="mainDash" style="display:none">
+
+  <!-- Nav -->
+  <nav class="nav">
+    <div class="nav-left">
+      <span class="nav-logo">AI Router</span>
+      <span class="nav-badge">Admin</span>
+    </div>
+    <div class="nav-right">
+      <span class="refresh-chip" id="refreshBadge">auto-refresh 30s</span>
+      <div class="nav-user">
+        <div class="nav-user-name" id="navUserName"></div>
+        <div class="nav-user-email" id="navUserEmail"></div>
+      </div>
+      <button class="btn btn-outline btn-sm" id="restartBtn" onclick="restartServer()">⟳ Restart</button>
+      <button class="btn btn-outline btn-sm" onclick="signOut()">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="content">
+
+    <!-- ── Stat Cards ── -->
+    <div class="stats-grid" id="topStats"></div>
+
+    <!-- ── Cookie warning banner ── -->
+    <div id="cookieWarning" style="display:none;margin-bottom:16px;padding:12px 16px;border-radius:10px;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;font-size:13px;flex-direction:row;align-items:flex-start;gap:10px">
+      <span style="font-size:16px;flex-shrink:0">⚠️</span>
+      <div>
+        <strong>Session cookies may be expired</strong>
+        <div id="cookieWarningProviders" style="margin-top:4px;font-size:12px;opacity:.85"></div>
+        <div style="margin-top:4px;font-size:12px">Update the cookies in <strong>Credentials</strong> below, then restart the server.</div>
+      </div>
+    </div>
+
+    <!-- ── Provider Health ── -->
+    <div class="health-grid" id="providerHealth"></div>
+
+    <!-- ── Charts Row 1: Provider + Top Models ── -->
+    <div class="chart-grid">
+      <div class="card">
+        <div class="card-title">Requests by Provider</div>
+        <div class="chart-wrap"><canvas id="chartProviderDoughnut"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Top Models by Usage</div>
+        <div class="chart-wrap"><canvas id="chartModelsBar"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ── Charts Row 2: Success Rate + Latency ── -->
+    <div class="chart-grid">
+      <div class="card">
+        <div class="card-title">Success Rate by Provider (%)</div>
+        <div class="chart-wrap"><canvas id="chartSuccessRate"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Avg Latency by Provider (ms)</div>
+        <div class="chart-wrap"><canvas id="chartLatency"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ── Users ── -->
+    <div class="section" id="usersSection" style="display:none">
+      <div class="card">
+        <div class="section-header">
+          <span class="section-title">Users</span>
+          <button class="btn btn-primary btn-sm" onclick="toggleCreateForm()">+ Create User</button>
+        </div>
+
+        <!-- Create form (collapsible) -->
+        <div id="createUserForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Name</label>
+              <input class="form-input" id="newUserName" type="text" placeholder="e.g. Abdullah">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email (optional)</label>
+              <input class="form-input" id="newUserEmail" type="email" placeholder="user@example.com">
+            </div>
+            <button class="btn btn-primary" onclick="createUser()">Generate API Key</button>
+            <button class="btn btn-outline" onclick="toggleCreateForm()">Cancel</button>
+          </div>
+          <div class="api-key-box" id="newKeyBox">
+            <div class="key-note" style="margin-bottom:6px">API Key — save this now, it won't be shown again</div>
+            <div class="key-val" id="newKeyVal"></div>
+            <button class="btn btn-copy btn-sm" onclick="copyKey()">Copy</button>
+          </div>
+        </div>
+
+        <!-- Per-user usage chart -->
+        <div style="margin-bottom:16px">
+          <div class="chart-wrap" style="height:180px"><canvas id="chartUsersBar"></canvas></div>
+        </div>
+
+        <!-- Users table -->
+        <div id="usersTableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th><th>Email</th><th>API Key</th>
+                <th>Requests</th><th>Tokens</th><th>Errors</th><th>Success</th><th>Avg Latency</th><th>Last Used</th>
+                <th>Status</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="usersBody"></tbody>
+          </table>
+        </div>
+
+        <!-- User detail panel (inline) -->
+        <div id="userDetailPanel">
+          <div class="detail-header">
+            <button class="btn btn-outline btn-sm" onclick="closeUserDetail()">← Back</button>
+            <span style="font-size:15px;font-weight:600" id="userDetailName"></span>
+          </div>
+          <div class="stats-grid" id="userDetailStats" style="margin-bottom:16px"></div>
+          <div class="chart-grid">
+            <div class="card" style="padding:16px">
+              <div class="card-title">Provider Breakdown</div>
+              <table><thead><tr><th>Provider</th><th>Requests</th><th>Tokens</th><th>Success</th><th>Latency</th></tr></thead><tbody id="userProviderBody"></tbody></table>
+            </div>
+            <div class="card" style="padding:16px">
+              <div class="card-title">Model Breakdown</div>
+              <table><thead><tr><th>Model</th><th>Provider</th><th>Requests</th><th>Tokens</th><th>Latency</th></tr></thead><tbody id="userModelBody"></tbody></table>
+            </div>
+          </div>
+          <div id="userImageGenSection" style="display:none;margin-top:16px">
+            <div class="section-title" style="margin-bottom:12px">Image Generation</div>
+            <div class="stats-grid" id="userImageGenStats"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Session Keys ── -->
+    <div class="section">
+      <div class="card">
+        <div class="section-header">
+          <span class="section-title">Session Keys</span>
+          <span style="font-size:12px;color:var(--text3)">Changes take effect immediately — saved to .env</span>
+        </div>
+        <table>
+          <thead><tr><th>Key</th><th>Current Value</th><th style="width:160px"></th></tr></thead>
+          <tbody id="credBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Recent Requests ── -->
+    <div class="section">
+      <div class="card">
+        <div class="section-header">
+          <span class="section-title">Recent Requests</span>
+        </div>
+        <table>
+          <thead><tr><th>Time</th><th>User</th><th>Model</th><th>Provider</th><th>Tokens</th><th>Latency</th><th>Status</th></tr></thead>
+          <tbody id="requestsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /mainDash -->
+
+<script>
+// ── Chart.js defaults ──
+if (typeof Chart !== 'undefined') {
+  Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  Chart.defaults.font.size = 12;
+  Chart.defaults.color = '#6b7280';
+}
+
+const $ = s => document.querySelector(s);
+
+let _adminKey = '';
+let _meInfo = null;
+const charts = {};
+
+function hdrs() {
+  return _adminKey ? {'Authorization': 'Bearer ' + _adminKey} : {};
+}
+
+// ── Auth ──
+async function doLogin() {
+  const key = $('#loginKey').value.trim();
+  if (!key) return;
+  const res = await fetch('/me', {headers: {'Authorization': 'Bearer ' + key}}).catch(() => null);
+  if (!res || !res.ok) { showLoginError('Invalid admin key'); return; }
+  const user = await res.json();
+  if (!user.is_admin) { showLoginError('Not an admin account'); return; }
+  _adminKey = key;
+  _meInfo = user;
+  localStorage.setItem('router_admin_key', key);
+  $('#loginError').style.display = 'none';
+  showDash();
+}
+
+function showLoginError(msg) {
+  const el = $('#loginError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+async function restartServer() {
+  const btn = $('#restartBtn');
+  btn.disabled = true; btn.textContent = 'Restarting…';
+  await fetch('/admin/restart', {method:'POST', headers: hdrs()}).catch(() => null);
+  setTimeout(() => { btn.textContent = '⟳ Restart'; btn.disabled = false; }, 4000);
+}
+
+function signOut() {
+  _adminKey = '';
+  localStorage.removeItem('router_admin_key');
+  $('#mainDash').style.display = 'none';
+  $('#loginGate').style.display = 'flex';
+  $('#loginKey').value = '';
+}
+
+function showDash() {
+  $('#loginGate').style.display = 'none';
+  $('#mainDash').style.display = 'block';
+  if (_meInfo) {
+    $('#navUserName').textContent = _meInfo.name || '';
+    $('#navUserEmail').textContent = _meInfo.email || '';
+  }
+  refresh();
+  loadConfig();
+  setInterval(refresh, 30000);
+}
+
+(async () => {
+  const saved = localStorage.getItem('router_admin_key');
+  if (saved) {
+    const res = await fetch('/me', {headers: {'Authorization': 'Bearer ' + saved}}).catch(() => null);
+    if (res && res.ok) {
+      const user = await res.json();
+      if (user.is_admin) {
+        _adminKey = saved;
+        _meInfo = user;
+        showDash();
+        return;
+      }
+    }
+    localStorage.removeItem('router_admin_key');
+  }
+  $('#loginGate').style.display = 'flex';
+})();
+
+// ── Formatters ──
+function ago(ts) {
+  if (!ts) return '-';
+  const s = Math.floor(Date.now()/1000 - ts);
+  if (s < 60) return s + 's ago';
+  if (s < 3600) return Math.floor(s/60) + 'm ago';
+  if (s < 86400) return Math.floor(s/3600) + 'h ago';
+  return Math.floor(s/86400) + 'd ago';
+}
+
+function fmt(n) {
+  if (n == null) return '-';
+  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+  return n.toString();
+}
+
+function uptimeStr(s) {
+  const d = Math.floor(s/86400), h = Math.floor((s%86400)/3600), m = Math.floor((s%3600)/60);
+  return (d ? d+'d ' : '') + h + 'h ' + m + 'm';
+}
+
+function clearEl(parent) { while (parent.firstChild) parent.removeChild(parent.firstChild); }
+
+function el(tag, cls, children, extra) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (typeof children === 'string') e.textContent = children;
+  else if (Array.isArray(children)) children.forEach(c => c && e.appendChild(c));
+  if (extra) Object.assign(e, extra);
+  return e;
+}
+
+function td(cls, text) {
+  const e = document.createElement('td');
+  if (cls) e.className = cls;
+  e.textContent = text ?? '-';
+  return e;
+}
+
+// ── Stat cards ──
+const ICON_COLORS = {
+  'Total Requests': {bg:'#ede9fe',icon:'📊'},
+  'Total Tokens':   {bg:'#dbeafe',icon:'🔤'},
+  'Active Users':   {bg:'#d1fae5',icon:'👥'},
+  'Success Rate':   {bg:'#fef3c7',icon:'✅'},
+  'Avg Latency':    {bg:'#fee2e2',icon:'⚡'},
+};
+
+function renderTop(s, userCount) {
+  const sr = s.success_rate_pct ?? 100;
+  const srColor = sr >= 90 ? 'var(--green)' : sr >= 70 ? 'var(--yellow)' : 'var(--red)';
+  const cards = [
+    {label:'Total Requests', val: fmt(s.total_requests), sub:'All time'},
+    {label:'Total Tokens',   val: fmt(s.tokens ? s.tokens.total : 0), sub:'Prompt + completion'},
+    {label:'Active Users',   val: String(userCount ?? 0), sub:'Registered'},
+    {label:'Success Rate',   val: sr + '%', sub:'', color: srColor},
+    {label:'Avg Latency',    val: s.latency_ms?.avg ? Math.round(s.latency_ms.avg)+'ms' : '-', sub:'Global average'},
+  ];
+  const container = $('#topStats');
+  clearEl(container);
+  cards.forEach(c => {
+    const ic = ICON_COLORS[c.label] || {bg:'#f3f4f6',icon:'📈'};
+    const card = document.createElement('div');
+    card.className = 'stat-card';
+    const iconEl = document.createElement('div');
+    iconEl.className = 'stat-icon';
+    iconEl.style.background = ic.bg;
+    iconEl.textContent = ic.icon;
+    const valEl = document.createElement('div');
+    valEl.className = 'stat-val';
+    valEl.textContent = c.val;
+    if (c.color) valEl.style.color = c.color;
+    card.appendChild(iconEl);
+    card.appendChild(valEl);
+    card.appendChild(el('div', 'stat-label', c.label));
+    if (c.sub) card.appendChild(el('div', 'stat-sub', c.sub));
+    container.appendChild(card);
+  });
+}
+
+// ── Charts ──
+const PROVIDER_COLORS = {
+  claude:'#d97706', gemini:'#0ea5e9', kimi:'#8b5cf6', chatgpt:'#10b981',
+};
+function provColor(name) {
+  return PROVIDER_COLORS[name?.toLowerCase()] || '#6366f1';
+}
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+function renderProviderDoughnut(providers) {
+  destroyChart('doughnut');
+  const labels = providers.map(p => p.provider || p.name);
+  const data   = providers.map(p => p.total_requests || p.requests || 0);
+  const colors = labels.map(provColor);
+  const total  = data.reduce((a, b) => a + b, 0);
+
+  const centerPlugin = {
+    id: 'centerText',
+    beforeDraw(chart) {
+      const {width, height, ctx} = chart;
+      const {chartArea} = chart;
+      if (!chartArea) return;
+      ctx.save();
+      ctx.font = 'bold 22px -apple-system, sans-serif';
+      ctx.fillStyle = '#111827';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const midY = (chartArea.top + chartArea.bottom) / 2;
+      ctx.fillText(fmt(total), width / 2, midY - 8);
+      ctx.font = '11px -apple-system, sans-serif';
+      ctx.fillStyle = '#9ca3af';
+      ctx.fillText('total', width / 2, midY + 14);
+      ctx.restore();
+    }
+  };
+
+  charts['doughnut'] = new Chart($('#chartProviderDoughnut'), {
+    type: 'doughnut',
+    data: {labels, datasets: [{data, backgroundColor: colors, borderWidth: 0, hoverOffset: 4}]},
+    options: {
+      cutout: '65%',
+      plugins: {legend: {position:'bottom', labels:{padding:16, usePointStyle:true, pointStyle:'circle'}}},
+      maintainAspectRatio: false,
+    },
+    plugins: [centerPlugin],
+  });
+}
+
+function renderModelsBar(models) {
+  destroyChart('models');
+  const top8 = (models || []).slice(0, 8);
+  const labels = top8.map(m => m.model);
+  const data   = top8.map(m => m.total_requests || m.requests || 0);
+  charts['models'] = new Chart($('#chartModelsBar'), {
+    type: 'bar',
+    data: {labels, datasets: [{label:'Requests', data, backgroundColor:'#6366f1', borderRadius:6, borderSkipped:false}]},
+    options: {
+      indexAxis: 'y',
+      plugins: {legend: {display: false}},
+      scales: {
+        x: {grid: {color:'#f3f4f6'}, border: {display:false}},
+        y: {grid: {display:false}, border: {display:false}, ticks:{font:{size:11}}},
+      },
+      maintainAspectRatio: false,
+    },
+  });
+}
+
+function renderSuccessBar(providers) {
+  destroyChart('success');
+  const labels = providers.map(p => p.provider || p.name);
+  const data   = providers.map(p => p.success_rate_pct ?? ((1 - (p.errors||0)/(p.total_requests||p.requests||1)) * 100));
+  charts['success'] = new Chart($('#chartSuccessRate'), {
+    type: 'bar',
+    data: {labels, datasets: [{label:'Success %', data, backgroundColor:'#10b981', borderRadius:6, borderSkipped:false}]},
+    options: {
+      plugins: {legend:{display:false}},
+      scales: {
+        y: {min:0, max:100, grid:{color:'#f3f4f6'}, border:{display:false}},
+        x: {grid:{display:false}, border:{display:false}},
+      },
+      maintainAspectRatio: false,
+    },
+  });
+}
+
+function renderLatencyBar(providers) {
+  destroyChart('latency');
+  const labels = providers.map(p => p.provider || p.name);
+  const data   = providers.map(p => {
+    const ms = p.avg_latency_ms ?? p.latency_ms?.avg;
+    return ms ? Math.round(ms) : 0;
+  });
+  const colors = labels.map((_, i) => i % 2 === 0 ? '#6366f1' : '#3b82f6');
+  charts['latency'] = new Chart($('#chartLatency'), {
+    type: 'bar',
+    data: {labels, datasets: [{label:'Latency ms', data, backgroundColor: colors, borderRadius:6, borderSkipped:false}]},
+    options: {
+      plugins: {legend:{display:false}},
+      scales: {
+        y: {grid:{color:'#f3f4f6'}, border:{display:false}},
+        x: {grid:{display:false}, border:{display:false}},
+      },
+      maintainAspectRatio: false,
+    },
+  });
+}
+
+// ── Requests table ──
+function renderRequests(reqs) {
+  const tb = $('#requestsBody');
+  clearEl(tb);
+  if (!reqs?.length) {
+    const tr = document.createElement('tr');
+    const emptyTd = document.createElement('td');
+    emptyTd.colSpan = 7;
+    emptyTd.className = 'empty-row';
+    emptyTd.style.cssText = 'text-align:center;padding:28px;color:#9ca3af';
+    emptyTd.textContent = 'No requests yet';
+    tr.appendChild(emptyTd);
+    tb.appendChild(tr); return;
+  }
+  reqs.slice(0, 30).forEach(r => {
+    // DB returns success as 1/0 int; in-memory returns bool — both truthy/falsy
+    const ok = r.success;
+    const total = r.total_tokens || ((r.prompt_tokens||0) + (r.completion_tokens||0));
+    const uid = r.user_id || '';
+    const userLabel = uid ? (uid === 'admin' ? 'admin' : uid.slice(0, 8) + '…') : '—';
+    const tr = document.createElement('tr');
+    tr.appendChild(td(null, ago(r.timestamp)));
+    tr.appendChild(td('mono', userLabel));
+    tr.appendChild(td('mono', r.model));
+    tr.appendChild(td(null, r.provider || '-'));
+    tr.appendChild(td(null, fmt(total)));
+    tr.appendChild(td(null, r.latency_ms != null ? Math.round(r.latency_ms) + 'ms' : '-'));
+    const statusTd = document.createElement('td');
+    const dot = document.createElement('span');
+    dot.className = 'dot ' + (ok ? 'dot-green' : 'dot-red');
+    statusTd.appendChild(dot);
+    statusTd.appendChild(document.createTextNode(ok ? 'OK' : 'ERR'));
+    tr.appendChild(statusTd);
+    tb.appendChild(tr);
+  });
+}
+
+// ── Users table ──
+let _usersCache = [];
+
+function renderUsers(users) {
+  _usersCache = users || [];
+  const tb = $('#usersBody');
+  clearEl(tb);
+  if (!users?.length) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td colspan="11" style="text-align:center;padding:28px;color:#9ca3af">No users — create one above</td>';
+    tb.appendChild(tr);
+    destroyChart('usersBar');
+    return;
+  }
+
+  // Per-user usage bar chart
+  try {
+    if (typeof Chart !== 'undefined') {
+      destroyChart('usersBar');
+      const names = users.map(u => u.name);
+      const reqs  = users.map(u => u.stats?.total_requests || 0);
+      const toks  = users.map(u => u.stats?.total_tokens || 0);
+      charts['usersBar'] = new Chart($('#chartUsersBar'), {
+        type: 'bar',
+        data: {
+          labels: names,
+          datasets: [
+            {label:'Requests', data: reqs, backgroundColor:'#6366f1', borderRadius:4, borderSkipped:false},
+            {label:'Tokens',   data: toks, backgroundColor:'#c7d2fe', borderRadius:4, borderSkipped:false},
+          ]
+        },
+        options: {
+          plugins: {legend:{position:'bottom', labels:{usePointStyle:true, pointStyle:'circle', padding:16}}},
+          scales: {
+            x: {grid:{display:false}, border:{display:false}},
+            y: {grid:{color:'#f3f4f6'}, border:{display:false}},
+          },
+          maintainAspectRatio: false,
+        },
+      });
+    }
+  } catch(e) { console.error('usersBar chart failed', e); }
+
+  users.forEach(u => {
+    const s = u.stats || {};
+    const sr = s.total_requests
+      ? (((s.total_requests - (s.total_errors||0)) / s.total_requests) * 100).toFixed(0) + '%'
+      : '—';
+    const lat = s.avg_latency_ms ? Math.round(s.avg_latency_ms) + 'ms' : '—';
+    const srOk = s.total_requests && !s.total_errors;
+
+    const tr = document.createElement('tr');
+    tr.style.cursor = 'pointer';
+    tr.onclick = () => showUserDetail(u.id, u.name);
+
+    tr.appendChild(td(null, u.name));
+    tr.appendChild(td('mono', u.email || '-'));
+
+    const keyTd = document.createElement('td');
+    keyTd.className = 'mono';
+    const maskedKey = u.api_key ? u.api_key.slice(0, 8) + '…' : '-';
+    keyTd.textContent = maskedKey;
+    if (u.api_key) {
+      keyTd.style.cursor = 'pointer';
+      keyTd.title = 'Click to reveal full key';
+      let revealed = false;
+      keyTd.onclick = e => {
+        e.stopPropagation();
+        revealed = !revealed;
+        keyTd.textContent = revealed ? u.api_key : maskedKey;
+        keyTd.title = revealed ? 'Click to hide' : 'Click to reveal full key';
+      };
+    }
+    tr.appendChild(keyTd);
+    tr.appendChild(td(null, fmt(s.total_requests || 0)));
+    tr.appendChild(td(null, fmt(s.total_tokens || 0)));
+
+    const errTd = document.createElement('td');
+    errTd.textContent = s.total_errors || 0;
+    if (s.total_errors) errTd.style.color = 'var(--red)';
+    tr.appendChild(errTd);
+
+    const srTd = document.createElement('td');
+    srTd.textContent = sr;
+    srTd.style.color = srOk ? 'var(--green)' : (s.total_requests ? 'var(--yellow)' : 'var(--text3)');
+    tr.appendChild(srTd);
+
+    tr.appendChild(td(null, lat));
+    tr.appendChild(td(null, ago(s.last_used)));
+
+    const badgeTd = document.createElement('td');
+    badgeTd.innerHTML = `<span class="badge ${u.is_active ? 'badge-green' : 'badge-red'}">${u.is_active ? 'active' : 'inactive'}</span>`;
+    tr.appendChild(badgeTd);
+
+    const actTd = document.createElement('td');
+    if (u.is_active) {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-danger btn-sm';
+      btn.textContent = 'Deactivate';
+      btn.onclick = e => { e.stopPropagation(); deactivateUser(u.id, u.name); };
+      actTd.appendChild(btn);
+    }
+    tr.appendChild(actTd);
+    tb.appendChild(tr);
+  });
+}
+
+async function createUser() {
+  const name = $('#newUserName').value.trim();
+  if (!name) { alert('Name is required'); return; }
+  const email = $('#newUserEmail').value.trim();
+  const res = await fetch('/admin/users', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json', ...hdrs()},
+    body: JSON.stringify({name, email}),
+  }).catch(() => null);
+  if (!res || !res.ok) { alert('Failed: ' + (res ? await res.text() : 'network error')); return; }
+  const user = await res.json();
+  $('#newKeyVal').textContent = user.api_key;
+  $('#newKeyBox').style.display = 'block';
+  $('#newUserName').value = '';
+  $('#newUserEmail').value = '';
+  refresh();
+}
+
+function copyKey() {
+  navigator.clipboard.writeText($('#newKeyVal').textContent).then(() => {
+    const btn = document.querySelector('.btn-copy');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+
+function toggleCreateForm() {
+  const f = $('#createUserForm');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+  if (f.style.display === 'none') $('#newKeyBox').style.display = 'none';
+}
+
+async function deactivateUser(userId, name) {
+  if (!confirm('Deactivate ' + name + '?')) return;
+  await fetch('/admin/users/' + userId, {method:'DELETE', headers: hdrs()});
+  refresh();
+}
+
+// ── User detail ──
+async function showUserDetail(userId, name) {
+  $('#userDetailName').textContent = name;
+  $('#usersTableWrap').style.display = 'none';
+  $('#userDetailPanel').style.display = 'block';
+  const h = hdrs();
+  try {
+    const [mRes, pRes, iRes] = await Promise.all([
+      fetch('/admin/users/' + userId + '/stats/models', {headers: h}),
+      fetch('/admin/users/' + userId + '/stats/providers', {headers: h}),
+      fetch('/admin/users/' + userId + '/stats/image-gen', {headers: h}),
+    ]);
+    const models = await mRes.json();
+    const providers = await pRes.json();
+    const imageGen = await iRes.json();
+
+    // Stat cards
+    const totalReqs   = providers.reduce((a, p) => a + (p.requests||0), 0);
+    const totalTokens = providers.reduce((a, p) => a + (p.tokens||0), 0);
+    const totalErrors = providers.reduce((a, p) => a + (p.errors||0), 0);
+    const sr = totalReqs ? ((1 - totalErrors / totalReqs) * 100).toFixed(1) + '%' : '100%';
+    const lats = providers.filter(p => (p.avg_latency_ms ?? p.latency_ms?.avg) != null && p.requests);
+    const totalW = lats.reduce((a, p) => a + p.requests, 0);
+    const avgLat = totalW ? Math.round(lats.reduce((a, p) => a + (p.avg_latency_ms ?? p.latency_ms?.avg) * p.requests, 0) / totalW) + 'ms' : '-';
+
+    const sc = $('#userDetailStats');
+    clearEl(sc);
+    [{label:'Requests', val:fmt(totalReqs)}, {label:'Tokens', val:fmt(totalTokens)},
+     {label:'Success Rate', val:sr}, {label:'Avg Latency', val:avgLat}].forEach(c => {
+      const card = document.createElement('div');
+      card.className = 'stat-card';
+      card.appendChild(el('div', 'stat-val', c.val));
+      card.appendChild(el('div', 'stat-label', c.label));
+      sc.appendChild(card);
+    });
+
+    // Provider table
+    const ptb = $('#userProviderBody');
+    clearEl(ptb);
+    if (!providers.length) {
+      ptb.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#9ca3af">No data</td></tr>';
+    } else {
+      providers.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.appendChild(td(null, p.provider));
+        tr.appendChild(td(null, fmt(p.requests)));
+        tr.appendChild(td(null, fmt(p.tokens)));
+        tr.appendChild(td(null, (p.success_rate_pct ?? 100) + '%'));
+        const pLat = p.avg_latency_ms ?? p.latency_ms?.avg;
+        tr.appendChild(td(null, pLat ? Math.round(pLat) + 'ms' : '-'));
+        ptb.appendChild(tr);
+      });
+    }
+
+    // Model table
+    const mtb = $('#userModelBody');
+    clearEl(mtb);
+    if (!models.length) {
+      mtb.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#9ca3af">No data</td></tr>';
+    } else {
+      models.forEach(m => {
+        const tr = document.createElement('tr');
+        tr.appendChild(td('mono', m.model));
+        tr.appendChild(td(null, m.provider));
+        tr.appendChild(td(null, fmt(m.requests)));
+        tr.appendChild(td(null, fmt(m.tokens)));
+        const mLat = m.avg_latency_ms ?? m.latency_ms?.avg;
+        tr.appendChild(td(null, mLat ? Math.round(mLat) + 'ms' : '-'));
+        mtb.appendChild(tr);
+      });
+    }
+
+    // Image gen
+    if (imageGen.total_image_requests > 0) {
+      $('#userImageGenSection').style.display = 'block';
+      const igc = $('#userImageGenStats');
+      clearEl(igc);
+      const c = document.createElement('div');
+      c.className = 'stat-card';
+      c.appendChild(el('div', 'stat-val', fmt(imageGen.total_image_requests)));
+      c.appendChild(el('div', 'stat-label', 'Total Image Requests'));
+      igc.appendChild(c);
+      for (const [prov, cnt] of Object.entries(imageGen.by_provider || {})) {
+        const cc = document.createElement('div');
+        cc.className = 'stat-card';
+        cc.appendChild(el('div', 'stat-val', fmt(cnt)));
+        cc.appendChild(el('div', 'stat-label', prov + ' images'));
+        igc.appendChild(cc);
+      }
+    } else {
+      $('#userImageGenSection').style.display = 'none';
+    }
+  } catch(e) {
+    console.error('user detail failed', e);
+  }
+}
+
+function closeUserDetail() {
+  $('#userDetailPanel').style.display = 'none';
+  $('#usersTableWrap').style.display = 'block';
+}
+
+// ── Provider health ──
+const PROVIDER_ICONS = {claude:'🟠', gemini:'🔵', chatgpt:'🟢', kimi:'🟣'};
+
+const COOKIE_BASED = ['claude', 'gemini', 'chatgpt', 'kimi'];
+
+function renderProviderHealth(healthData) {
+  const container = $('#providerHealth');
+  clearEl(container);
+  const providers = healthData?.providers || {};
+  const downCookieProviders = [];
+  Object.entries(providers).forEach(([name, h]) => {
+    const status = h.status || 'unknown';
+    const lat = h.avg_latency_ms ? Math.round(h.avg_latency_ms) + 'ms' : 'no data';
+    const card = document.createElement('div');
+    card.className = 'health-card';
+    const iconEl = el('div', 'health-icon', PROVIDER_ICONS[name] || '⚪');
+    const infoEl = el('div', 'health-info', [
+      el('div', 'health-name', name),
+      el('div', 'health-status status-' + status, status.toUpperCase()),
+      el('div', 'health-sub', lat + (h.avg_latency_ms ? ' avg' : '')),
+    ]);
+    card.appendChild(iconEl);
+    card.appendChild(infoEl);
+    container.appendChild(card);
+    if (status === 'down' && COOKIE_BASED.includes(name)) downCookieProviders.push(name);
+  });
+  const banner = $('#cookieWarning');
+  if (downCookieProviders.length) {
+    $('#cookieWarningProviders').textContent = 'Affected: ' + downCookieProviders.join(', ');
+    banner.style.display = 'flex';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+// ── Credentials ──
+let _config = {};
+
+async function loadConfig() {
+  const res = await fetch('/admin/config', {headers: hdrs()}).catch(() => null);
+  if (!res || !res.ok) return;
+  _config = await res.json();
+  renderCreds();
+}
+
+function renderCreds() {
+  const tb = $('#credBody');
+  clearEl(tb);
+  Object.entries(_config).forEach(([key, maskedVal]) => {
+    const tr = document.createElement('tr');
+    tr.id = 'cred-row-' + key;
+
+    const keyTd = document.createElement('td');
+    keyTd.className = 'mono';
+    keyTd.style.fontWeight = '500';
+    keyTd.textContent = key;
+
+    const valTd = document.createElement('td');
+    valTd.id = 'cred-val-' + key;
+    valTd.className = 'mono';
+    valTd.style.color = maskedVal ? 'var(--text2)' : 'var(--text3)';
+    valTd.textContent = maskedVal || '(not set)';
+
+    const actTd = document.createElement('td');
+    actTd.style.textAlign = 'right';
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn btn-outline btn-sm';
+    editBtn.textContent = 'Edit';
+    editBtn.onclick = () => editCred(key, maskedVal);
+    actTd.appendChild(editBtn);
+
+    tr.appendChild(keyTd);
+    tr.appendChild(valTd);
+    tr.appendChild(actTd);
+    tb.appendChild(tr);
+  });
+}
+
+function editCred(key, currentMasked) {
+  const valTd = $('#cred-val-' + key);
+  const actTd = valTd.nextElementSibling;
+
+  const input = document.createElement('input');
+  input.className = 'form-input';
+  input.style.cssText = 'width:100%;font-size:12px;font-family:monospace';
+  input.placeholder = 'Enter new value…';
+  clearEl(valTd);
+  valTd.appendChild(input);
+  input.focus();
+
+  clearEl(actTd);
+  actTd.style.textAlign = 'right';
+
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'btn btn-primary btn-sm';
+  saveBtn.textContent = 'Save';
+  saveBtn.onclick = () => saveCred(key, input.value.trim());
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn btn-outline btn-sm';
+  cancelBtn.style.marginLeft = '6px';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.onclick = () => { _config[key] = currentMasked; renderCreds(); };
+
+  actTd.appendChild(saveBtn);
+  actTd.appendChild(cancelBtn);
+
+  input.onkeydown = e => {
+    if (e.key === 'Enter') saveBtn.click();
+    if (e.key === 'Escape') cancelBtn.click();
+  };
+}
+
+async function saveCred(key, value) {
+  if (!value) { alert('Value cannot be empty'); return; }
+  const res = await fetch('/admin/config', {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json', ...hdrs()},
+    body: JSON.stringify({key, value}),
+  }).catch(() => null);
+  if (!res || !res.ok) { alert('Failed: ' + (res ? await res.text() : 'network error')); return; }
+  const data = await res.json();
+  if (data.reinit === 'failed') alert('Saved to .env but re-init failed: ' + (data.error || ''));
+  await loadConfig();
+}
+
+// ── Main refresh ──
+async function refresh() {
+  try {
+    const h = hdrs();
+    const [statsRes, provRes, modRes, usersRes, reqsRes, healthRes] = await Promise.all([
+      fetch('/stats', {headers: h}),
+      fetch('/stats/providers', {headers: h}),
+      fetch('/stats/models', {headers: h}),
+      fetch('/admin/users', {headers: h}),
+      fetch('/requests?limit=30', {headers: h}),
+      fetch('/health', {headers: h}),
+    ]);
+
+    const stats      = statsRes.ok   ? await statsRes.json()   : {};
+    const provData   = provRes.ok    ? await provRes.json()    : [];
+    const modData    = modRes.ok     ? await modRes.json()     : [];
+    const users      = usersRes.ok   ? await usersRes.json()   : null;
+    const reqsJson   = reqsRes.ok    ? await reqsRes.json()    : [];
+    const healthData = healthRes.ok  ? await healthRes.json()  : {};
+    const reqs       = Array.isArray(reqsJson) ? reqsJson : (reqsJson.requests || []);
+
+    // Normalize providers: both /stats/providers and /dashboard/data.health may differ in shape
+    const providers = Array.isArray(provData) ? provData
+      : Object.entries(provData).map(([name, v]) => ({provider: name, ...v}));
+
+    renderTop(stats, users ? users.length : 0);
+    renderProviderHealth(healthData);
+    renderRequests(reqs);
+
+    if (users) {
+      renderUsers(users);
+      $('#usersSection').style.display = 'block';
+    } else {
+      $('#usersSection').style.display = 'none';
+    }
+
+    // Charts isolated — a CDN failure shouldn't break the rest of the UI
+    try {
+      if (typeof Chart !== 'undefined') {
+        renderProviderDoughnut(providers);
+        renderModelsBar(modData);
+        renderSuccessBar(providers);
+        renderLatencyBar(providers);
+      } else {
+        console.warn('Chart.js not loaded — charts unavailable');
+      }
+    } catch(e) {
+      console.error('chart render failed', e);
+    }
+  } catch(e) {
+    console.error('refresh failed', e);
+  }
+}
+</script>
+</body>
+</html>

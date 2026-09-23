@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Router — My Dashboard</title>
+<script src="/static/chart.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#f8f9fa;--surface:#ffffff;--border:#e5e7eb;
+  --text:#111827;--text2:#6b7280;--text3:#9ca3af;
+  --accent:#6366f1;--accent-light:#ede9fe;
+  --green:#10b981;--red:#ef4444;--yellow:#f59e0b;--blue:#3b82f6
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);line-height:1.5;min-height:100vh}
+
+/* Nav */
+.nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.nav-left{display:flex;align-items:center;gap:16px}
+.logo{font-size:1.1rem;font-weight:700;color:var(--accent);letter-spacing:-.3px}
+.nav-greeting{font-size:13px;color:var(--text2)}
+.nav-right{display:flex;align-items:center;gap:10px}
+.nav-admin{font-size:13px;color:var(--accent);text-decoration:none;padding:4px 10px;border-radius:6px;background:var(--accent-light);font-weight:500}
+.nav-admin:hover{background:#ddd6fe}
+.btn-signout{background:transparent;color:var(--text2);border:1px solid var(--border);padding:5px 12px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:500}
+.btn-signout:hover{border-color:var(--red);color:var(--red)}
+
+/* Main */
+.main{max-width:1200px;margin:0 auto;padding:28px 24px}
+
+/* Login */
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 56px)}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px;width:100%;max-width:380px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.06)}
+.login-card h2{font-size:1.25rem;font-weight:700;margin-bottom:6px}
+.login-card p{color:var(--text2);font-size:14px;margin-bottom:24px}
+.login-input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:8px;font-size:14px;margin-bottom:14px;font-family:inherit;outline:none}
+.login-input:focus{border-color:var(--accent)}
+.login-error{color:var(--red);font-size:13px;margin-bottom:12px;display:none}
+.btn-primary{background:var(--accent);color:#fff;border:none;padding:10px 0;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;width:100%}
+.btn-primary:hover{background:#4f52d3}
+
+/* Stats row */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;display:flex;align-items:flex-start;gap:14px}
+.stat-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
+.stat-icon.indigo{background:var(--accent-light)}
+.stat-icon.green{background:#d1fae5}
+.stat-icon.blue{background:#dbeafe}
+.stat-icon.yellow{background:#fef3c7}
+.stat-val{font-size:1.6rem;font-weight:700;line-height:1.1;color:var(--text)}
+.stat-label{font-size:12px;color:var(--text2);margin-top:3px}
+
+/* Charts row */
+.charts-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px;margin-bottom:24px}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+.chart-card h3{font-size:14px;font-weight:600;color:var(--text);margin-bottom:16px}
+.chart-wrap canvas{max-height:240px}
+
+/* Token row */
+.token-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px;margin-bottom:24px}
+.token-chart-wrap canvas{max-height:220px}
+
+/* Image gen card */
+.img-gen-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+.img-gen-card h3{font-size:14px;font-weight:600;color:var(--text);margin-bottom:16px}
+.img-stat-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.img-stat-row:last-child{border-bottom:none}
+.img-stat-label{color:var(--text2)}
+.img-stat-val{font-weight:600;color:var(--text)}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;color:var(--text3);font-size:13px;gap:8px;height:150px}
+.empty-icon{font-size:28px;opacity:.5}
+
+/* Table */
+.table-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:24px}
+.table-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.table-header h3{font-size:14px;font-weight:600;color:var(--text)}
+.btn-refresh{background:transparent;border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:12px;color:var(--text2);cursor:pointer}
+.btn-refresh:hover{border-color:var(--accent);color:var(--accent)}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 12px;color:var(--text2);font-weight:500;border-bottom:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f9fafb}
+.mono{font-family:'SF Mono',Monaco,Consolas,monospace;font-size:12px}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.dot-green{background:var(--green)}
+.dot-red{background:var(--red)}
+.status-ok{color:var(--green);font-weight:500}
+.status-err{color:var(--red);font-weight:500}
+.empty-row td{text-align:center;color:var(--text3);padding:32px;border-bottom:none}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-left">
+    <span class="logo">AI Router</span>
+    <span class="nav-greeting" id="navGreeting" style="display:none"></span>
+  </div>
+  <div class="nav-right">
+    <a href="/admin" class="nav-admin" id="adminLink" style="display:none">Admin Dashboard</a>
+    <button class="btn-signout" onclick="signOut()">Sign Out</button>
+  </div>
+</nav>
+
+<div id="loginView" style="display:none">
+  <div class="login-wrap">
+    <div class="login-card">
+      <h2>My Dashboard</h2>
+      <p>Enter your API key to view your usage</p>
+      <div class="login-error" id="loginError">Invalid API key</div>
+      <input class="login-input" id="loginKey" type="password" placeholder="Your API key">
+      <button class="btn-primary" onclick="signIn()">Sign In</button>
+    </div>
+  </div>
+</div>
+
+<div id="dashView" style="display:none">
+  <div class="main">
+    <div class="stats-row" id="statsRow"></div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <h3>Usage by Model</h3>
+        <div class="chart-wrap"><canvas id="doughnutChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Requests by Provider</h3>
+        <div class="chart-wrap"><canvas id="barChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="token-row">
+      <div class="chart-card">
+        <h3>Token Usage by Model</h3>
+        <div class="token-chart-wrap"><canvas id="tokenChart"></canvas></div>
+      </div>
+      <div class="img-gen-card">
+        <h3>Image Generation</h3>
+        <div id="imageGenContent"></div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header">
+        <h3>Recent Requests</h3>
+        <button class="btn-refresh" onclick="loadDashboard()">&#8635; Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Time</th><th>Model</th><th>Provider</th>
+            <th>Prompt Tokens</th><th>Completion Tokens</th>
+            <th>Latency</th><th>Status</th>
+          </tr></thead>
+          <tbody id="requestsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Chart.js doughnut center-text plugin ──────────────────────────────────────
+const centerTextPlugin = {
+  id: 'centerText',
+  beforeDraw(chart) {
+    if (chart.config.type !== 'doughnut') return;
+    const { ctx, chartArea: { top, bottom, left, right } } = chart;
+    const cx = (left + right) / 2, cy = (top + bottom) / 2;
+    ctx.save();
+    ctx.font = 'bold 22px -apple-system, sans-serif';
+    ctx.fillStyle = '#111827';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+    ctx.fillText(total.toLocaleString(), cx, cy - 8);
+    ctx.font = '12px -apple-system, sans-serif';
+    ctx.fillStyle = '#6b7280';
+    ctx.fillText('requests', cx, cy + 12);
+    ctx.restore();
+  }
+};
+Chart.register(centerTextPlugin);
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+const PALETTE = ['#6366f1','#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316'];
+const PROVIDER_COLORS = { claude:'#d97706', gemini:'#0ea5e9', kimi:'#8b5cf6', chatgpt:'#10b981', openai:'#10b981' };
+
+// ── DOM helpers ───────────────────────────────────────────────────────────────
+const $ = s => document.querySelector(s);
+
+function mk(tag, cls) {
+  const el = document.createElement(tag);
+  if (cls) el.className = cls;
+  return el;
+}
+
+function txt(tag, cls, content) {
+  const el = mk(tag, cls);
+  el.textContent = content;
+  return el;
+}
+
+function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+
+function fmt(n) {
+  if (n == null) return '—';
+  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+  return Number(n).toLocaleString();
+}
+
+function ago(ts) {
+  if (!ts) return '—';
+  const s = Math.floor(Date.now()/1000 - ts);
+  if (s < 60) return s + 's ago';
+  if (s < 3600) return Math.floor(s/60) + 'm ago';
+  if (s < 86400) return Math.floor(s/3600) + 'h ago';
+  return Math.floor(s/86400) + 'd ago';
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+function getKey() { return localStorage.getItem('router_user_key') || ''; }
+function hdrs() { return { 'Authorization': 'Bearer ' + getKey() }; }
+
+let _timer = null;
+
+function showLogin() {
+  $('#loginView').style.display = 'block';
+  $('#dashView').style.display = 'none';
+  if (_timer) { clearInterval(_timer); _timer = null; }
+}
+
+function showDash() {
+  $('#loginView').style.display = 'none';
+  $('#dashView').style.display = 'block';
+  loadDashboard();
+  if (_timer) clearInterval(_timer);
+  _timer = setInterval(loadDashboard, 30000);
+}
+
+async function signIn() {
+  const key = $('#loginKey').value.trim();
+  if (!key) return;
+  const errEl = $('#loginError');
+  try {
+    const res = await fetch('/me', { headers: { 'Authorization': 'Bearer ' + key } });
+    if (res.status === 401) { errEl.textContent = 'Invalid API key'; errEl.style.display = 'block'; return; }
+    if (!res.ok) { errEl.textContent = 'Error: ' + res.status; errEl.style.display = 'block'; return; }
+    localStorage.setItem('router_user_key', key);
+    errEl.style.display = 'none';
+    showDash();
+  } catch(e) {
+    errEl.textContent = 'Connection error';
+    errEl.style.display = 'block';
+  }
+}
+
+function signOut() {
+  localStorage.removeItem('router_user_key');
+  showLogin();
+}
+
+async function apiFetch(url) {
+  const res = await fetch(url, { headers: hdrs() });
+  if (res.status === 401) { signOut(); return null; }
+  if (!res.ok) return null;
+  return res.json();
+}
+
+// ── Chart instances ───────────────────────────────────────────────────────────
+let _doughnut = null, _bar = null, _token = null;
+function destroyChart(c) { if (c) c.destroy(); return null; }
+
+// ── Dashboard loader ──────────────────────────────────────────────────────────
+async function loadDashboard() {
+  const [me, models, providers, imageGen, reqs] = await Promise.all([
+    apiFetch('/me'),
+    apiFetch('/me/stats/models'),
+    apiFetch('/me/stats/providers'),
+    apiFetch('/me/stats/image-gen'),
+    apiFetch('/me/requests?limit=50'),
+  ]);
+  if (!me) return;
+
+  // Nav greeting
+  const name = me.name || me.id || 'you';
+  const greet = $('#navGreeting');
+  greet.textContent = 'Welcome back, ' + name;
+  greet.style.display = 'inline';
+  $('#adminLink').style.display = me.is_admin ? 'inline' : 'none';
+
+  renderStats(me, models);
+  renderDoughnut(models);
+  renderBar(providers);
+  renderTokenChart(models);
+  renderImageGen(imageGen, me);
+  renderRequests(reqs);
+}
+
+// ── Row 1: Stat cards ─────────────────────────────────────────────────────────
+function renderStats(me, models) {
+  const s = me.stats || {};
+  const total = s.total_requests || 0;
+  const errors = s.total_errors || 0;
+  const rate = total ? ((1 - errors / total) * 100).toFixed(1) : 100;
+  const rateColor = rate >= 99 ? 'var(--green)' : rate >= 95 ? 'var(--yellow)' : 'var(--red)';
+
+  let favModel = '—';
+  if (models && models.length) {
+    const top = [...models].sort((a, b) => b.requests - a.requests)[0];
+    if (top) favModel = top.model.split('/').pop();
+  }
+
+  const cards = [
+    { icon: '⚡', cls: 'indigo', val: fmt(total),     label: 'My Requests',   color: null },
+    { icon: '🔢', cls: 'blue',   val: fmt(s.total_tokens || 0), label: 'My Tokens', color: null },
+    { icon: '⭐', cls: 'yellow', val: favModel,        label: 'Favorite Model', color: null },
+    { icon: '✓',  cls: 'green',  val: rate + '%',      label: 'Success Rate',   color: rateColor },
+  ];
+
+  const row = $('#statsRow');
+  clear(row);
+
+  cards.forEach(c => {
+    const card = mk('div', 'stat-card');
+    const icon = mk('div', 'stat-icon ' + c.cls);
+    icon.textContent = c.icon;
+    const info = mk('div');
+    const valEl = txt('div', 'stat-val', c.val);
+    if (c.color) valEl.style.color = c.color;
+    info.appendChild(valEl);
+    info.appendChild(txt('div', 'stat-label', c.label));
+    card.appendChild(icon);
+    card.appendChild(info);
+    row.appendChild(card);
+  });
+}
+
+// ── Chart 1: Doughnut ─────────────────────────────────────────────────────────
+function renderDoughnut(models) {
+  _doughnut = destroyChart(_doughnut);
+  if (!models || !models.length) return;
+
+  const sorted = [...models].sort((a, b) => b.requests - a.requests);
+  const top = sorted.slice(0, 8);
+  const rest = sorted.slice(8).reduce((acc, m) => acc + m.requests, 0);
+  const labels = top.map(m => m.model);
+  const data = top.map(m => m.requests);
+  if (rest > 0) { labels.push('Others'); data.push(rest); }
+
+  _doughnut = new Chart($('#doughnutChart'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data, backgroundColor: PALETTE, borderWidth: 2, borderColor: '#fff', hoverOffset: 4 }]
+    },
+    options: {
+      cutout: '65%',
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, font: { size: 11 } } } }
+    }
+  });
+}
+
+// ── Chart 2: Bar (providers) ──────────────────────────────────────────────────
+function renderBar(providers) {
+  _bar = destroyChart(_bar);
+  if (!providers || !providers.length) return;
+
+  const active = providers.filter(p => p.requests > 0).sort((a, b) => b.requests - a.requests);
+  const labels = active.map(p => p.provider);
+  const data = active.map(p => p.requests);
+  const colors = labels.map(l => PROVIDER_COLORS[l.toLowerCase()] || '#6366f1');
+
+  _bar = new Chart($('#barChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ label: 'Requests', data, backgroundColor: colors, borderRadius: 6, borderSkipped: false }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { font: { size: 11 } } },
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+// ── Chart 3: Horizontal stacked token bar ─────────────────────────────────────
+function renderTokenChart(models) {
+  _token = destroyChart(_token);
+  if (!models || !models.length) return;
+
+  const top6 = [...models].sort((a, b) => (b.tokens || 0) - (a.tokens || 0)).slice(0, 6);
+  const labels = top6.map(m => m.model);
+  const prompt = top6.map(m => m.prompt_tokens || 0);
+  const completion = top6.map(m => m.completion_tokens || 0);
+
+  _token = new Chart($('#tokenChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Prompt Tokens',     data: prompt,     backgroundColor: '#3b82f6', stack: 'tok' },
+        { label: 'Completion Tokens', data: completion, backgroundColor: '#6366f1', stack: 'tok' },
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, font: { size: 11 } } } },
+      scales: {
+        x: { stacked: true, grid: { color: '#f3f4f6' }, ticks: { font: { size: 11 } } },
+        y: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+// ── Image gen card ────────────────────────────────────────────────────────────
+function renderImageGen(imageGen, me) {
+  const container = $('#imageGenContent');
+  clear(container);
+
+  const total = imageGen && imageGen.total_image_requests;
+  if (!total) {
+    const es = mk('div', 'empty-state');
+    es.appendChild(txt('div', 'empty-icon', '\uD83D\uDDBC'));
+    es.appendChild(txt('span', null, 'No image generation yet'));
+    container.appendChild(es);
+    return;
+  }
+
+  const reqTotal = (me.stats || {}).total_requests || 1;
+  const pct = ((total / reqTotal) * 100).toFixed(1);
+  const byModel = imageGen.by_model || imageGen.by_provider || {};
+
+  const rows = [
+    ['Total Image Requests', fmt(total)],
+    ['Share of All Requests', pct + '%'],
+    ...Object.entries(byModel).map(([k, v]) => [k, fmt(v)]),
+  ];
+
+  rows.forEach(([label, val]) => {
+    const row = mk('div', 'img-stat-row');
+    row.appendChild(txt('span', 'img-stat-label', label));
+    row.appendChild(txt('span', 'img-stat-val', val));
+    container.appendChild(row);
+  });
+}
+
+// ── Recent requests table ─────────────────────────────────────────────────────
+function renderRequests(reqs) {
+  const tbody = $('#requestsBody');
+  clear(tbody);
+  const list = reqs ? (reqs.requests || []) : [];
+
+  if (!list.length) {
+    const row = document.createElement('tr');
+    row.className = 'empty-row';
+    const cell = document.createElement('td');
+    cell.colSpan = 7;
+    cell.textContent = 'No requests yet';
+    row.appendChild(cell);
+    tbody.appendChild(row);
+    return;
+  }
+
+  list.forEach(r => {
+    const ok = r.success;
+    const row = document.createElement('tr');
+
+    const cells = [
+      { val: ago(r.timestamp),          cls: null },
+      { val: r.model || '—',            cls: 'mono' },
+      { val: r.provider || '—',         cls: null },
+      { val: fmt(r.prompt_tokens),      cls: 'mono' },
+      { val: fmt(r.completion_tokens),  cls: 'mono' },
+      { val: r.latency_ms != null ? Math.round(r.latency_ms) + 'ms' : '—', cls: 'mono' },
+    ];
+
+    cells.forEach(c => {
+      const td = document.createElement('td');
+      if (c.cls) td.className = c.cls;
+      td.textContent = c.val;
+      row.appendChild(td);
+    });
+
+    // Status cell
+    const statusTd = document.createElement('td');
+    statusTd.className = ok ? 'status-ok' : 'status-err';
+    const dot = mk('span', 'dot ' + (ok ? 'dot-green' : 'dot-red'));
+    statusTd.appendChild(dot);
+    statusTd.appendChild(document.createTextNode(ok ? 'OK' : 'Error'));
+    row.appendChild(statusTd);
+
+    tbody.appendChild(row);
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+$('#loginKey').addEventListener('keydown', e => { if (e.key === 'Enter') signIn(); });
+if (getKey()) { showDash(); } else { showLogin(); }
+</script>
+</body>
+</html>
